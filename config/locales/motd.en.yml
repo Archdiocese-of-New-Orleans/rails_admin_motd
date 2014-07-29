@@ -1,0 +1,12 @@
+
+en:
+  admin:
+    actions:
+      motd:
+        title: "Motd"
+        menu: "Motd"
+        breadcrumb: "Motd"
+        link: "Motd"
+        bulk_link: "Motd selected %{model_label_plural}"
+        done: "Motded"
+        message_required: "A message is required."
