@@ -16,6 +16,17 @@ module RailsAdminMotd
     yield self
   end
 
+  def self.yml_path
+    Rails.root.join("config", "rails_admin_motd.yml")
+  end
+
+  def self.current_motd
+    motd = YAML.load_file(yml_path)['messages'].first
+    if motd && Time.parse(motd['date']).today?
+      motd
+    end
+  end
+
 end
 
 require 'rails_admin/config/actions'
@@ -41,10 +52,6 @@ module RailsAdmin
               @motds.length + 1
             end
 
-            def yml_path
-              Rails.root.join("config", "rails_admin_motd.yml")
-            end
-
             def update_motd(motd={})
               @motds.unshift(motd)
               write_yml
@@ -57,8 +64,8 @@ module RailsAdmin
 
             def write_yml
               motds = { 'messages' => @motds}
-              File.open(yml_path, 'w') {|f| f.write motds.to_yaml }
-              @motds = YAML.load_file(yml_path)['messages']
+              File.open(RailsAdminMotd.yml_path, 'w') {|f| f.write motds.to_yaml }
+              @motds = YAML.load_file(RailsAdminMotd.yml_path)['messages']
             end
 
             def remove_motd_from_yml(motd_id)
@@ -69,7 +76,14 @@ module RailsAdmin
               end
             end
 
-            @motds = YAML.load_file(yml_path)['messages']
+            def current_motd
+              m = @motds.first
+              if Time.parse(m[date]).today?
+                m
+              end
+            end
+
+            @motds = YAML.load_file(RailsAdminMotd.yml_path)['messages']
 
             if request.post?
               Pusher.url = "http://#{RailsAdminMotd.pusher_key}:#{RailsAdminMotd.pusher_secret}@api.pusherapp.com/apps/#{RailsAdminMotd.pusher_app_id}"
