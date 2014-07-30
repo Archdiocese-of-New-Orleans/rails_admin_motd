@@ -37,12 +37,8 @@ module RailsAdmin
         register_instance_option :controller do
           Proc.new do
 
-            def motds
-              @motds ||= YAML.load_file(yml_path)
-            end
-
             def next_motd_id
-              motds['messages'].length + 1
+              @motds.length + 1
             end
 
             def yml_path
@@ -50,21 +46,30 @@ module RailsAdmin
             end
 
             def update_motd(motd={})
-              motds['messages'].unshift(motd)
+              @motds.unshift(motd)
               write_yml
             end
 
+            def clean_up
+              m = @motds.slice(RailsAdminMotd.history_limit - 1, @motds.length)
+              m.each{ |motd| remove_motd_from_yml(motd['id']) } if m
+            end
+
             def write_yml
+              motds = { 'messages' => @motds}
               File.open(yml_path, 'w') {|f| f.write motds.to_yaml }
+              @motds = YAML.load_file(yml_path)['messages']
             end
 
             def remove_motd_from_yml(motd_id)
-              index = motds['messages'].index{|m| m['id'] = motd_id }
+              index = @motds.index{|m| m['id'] = motd_id }
               if index
-                motds['messages'].delete_at(index)
+                @motds.delete_at(index)
                 write_yml
               end
             end
+
+            @motds = YAML.load_file(yml_path)['messages']
 
             if request.post?
               Pusher.url = "http://#{RailsAdminMotd.pusher_key}:#{RailsAdminMotd.pusher_secret}@api.pusherapp.com/apps/#{RailsAdminMotd.pusher_app_id}"
@@ -84,6 +89,7 @@ module RailsAdmin
                       message: @motd
                     })
                     # save state to the yml file
+                    clean_up
                     update_motd( { 'id' => next_motd_id, 'user_id' => current_user.id, 'name' => @name, 'date' => date, 'message' => @motd } )
                   end
                 rescue Pusher::Error => e
@@ -96,7 +102,7 @@ module RailsAdmin
             elsif request.delete?
               begin
                 if can? :delete, :motd
-                  motd = motds['messages'].find{|m| m['id'] == params[:id] } #find the motd from the yml
+                  motd = @motds.find{|m| m['id'] == params[:id] }
                   Pusher["#{RailsAdminMotd.pusher_channel}"].trigger("#{RailsAdminMotd.pusher_event_remove}", {
                     id: params[:id]
                   })
@@ -105,9 +111,6 @@ module RailsAdmin
               rescue Pusher::Error => e
                 @error = e.message
               end
-
-            else
-              @motds = motds['messages']
             end
 
             respond_to do |format|
