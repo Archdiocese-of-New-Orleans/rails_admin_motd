@@ -67,32 +67,36 @@ module RailsAdmin
             end
 
             if request.post?
-              @motd = params[:motd]
               Pusher.url = "http://#{RailsAdminMotd.pusher_key}:#{RailsAdminMotd.pusher_secret}@api.pusherapp.com/apps/#{RailsAdminMotd.pusher_app_id}"
               Pusher.logger = Rails.logger
+              @motd = params[:motd]
               @name = current_user.try(RailsAdminMotd.current_user_name_method)
+              date = DateTime.now.strftime("%a, %b %e at %l:%M %p")
+
               if @motd.present?
                 begin
-                  Pusher["#{RailsAdminMotd.pusher_channel}"].trigger("#{RailsAdminMotd.pusher_event_add}", {
-                    id: next_motd_id,
-                    user_id: current_user.id,
-                    name: @name,
-                    date: DateTime.now.to_s,
-                    message: @motd
-                  })
-                  # save state to the yml file
-                  update_motd( { 'id' => next_motd_id, 'user_id' => current_user.id, 'name' => @name, 'date' => DateTime.now.to_s, 'message' => @motd } )
+                  if can? :create, :motd
+                    Pusher["#{RailsAdminMotd.pusher_channel}"].trigger("#{RailsAdminMotd.pusher_event_add}", {
+                      id: next_motd_id,
+                      user_id: current_user.id,
+                      name: @name,
+                      date: date,
+                      message: @motd
+                    })
+                    # save state to the yml file
+                    update_motd( { 'id' => next_motd_id, 'user_id' => current_user.id, 'name' => @name, 'date' => date, 'message' => @motd } )
+                  end
                 rescue Pusher::Error => e
-                  p e.message
                   @error = e.message
                 end
               else
                 @error = I18n.t('admin.actions.motd.message_required')
               end
+
             elsif request.delete?
               begin
-                motd = motds['messages'].find{|m| m['id'] == params[:id] } #find the motd from the yml
-                if can? :manage, :all || motd.user_id == current_user.id #delete it if they are auth.
+                if can? :delete, :motd
+                  motd = motds['messages'].find{|m| m['id'] == params[:id] } #find the motd from the yml
                   Pusher["#{RailsAdminMotd.pusher_channel}"].trigger("#{RailsAdminMotd.pusher_event_remove}", {
                     id: params[:id]
                   })
@@ -101,6 +105,7 @@ module RailsAdmin
               rescue Pusher::Error => e
                 @error = e.message
               end
+
             else
               @motds = motds['messages']
             end

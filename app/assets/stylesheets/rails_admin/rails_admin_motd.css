@@ -10,7 +10,23 @@
 }
 
 .message{
-    margin-bottom: 5px;
+    margin: 10px 0px 30px 0px;
+}
+
+.message > .lead{
+    margin-bottom: 0px;
+    position: relative;
+    top: -13px;
+}
+
+.details {
+    position: relative;
+    top: -28px;
+    left: -14px;
+}
+
+.details > .small {
+    font-size: 85%;
 }
 
 #motd{

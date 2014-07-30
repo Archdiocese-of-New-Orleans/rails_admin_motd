@@ -8,10 +8,11 @@
               - if current_user.id == motd['user_id']
                 %button.close{type: 'button', "data-dismiss"=> 'alert'}
                   &times;
-              %p.name=motd['name']
-              %p.date=motd['date']
-              %p.lead=motd['message']
-
+              .details.text-muted
+                %span.small=motd['name']
+                %span.small=" • "
+                %span.small=motd['date']
+              .lead=motd['message']
       %div{ id: 'no-messages', class:  @motds.present? ? 'hide' : ''}
         %i=t('admin.actions.motd.no_messages')
 
@@ -41,22 +42,23 @@
   var current_user_id = #{current_user.id};
   channel.bind("#{RailsAdminMotd.pusher_event_add}", function(data) {
     $('#no-messages').fadeOut();
-    var $name = $("<p class='name'></p>").append(data.name);
-    var $date = $("<p class='date'></p>").append(data.date);
-    var $button = $('');
-    if (data.user_id == current_user_id)
-      $button = $('<button type="button" class="close" data-dismiss="alert"></button>').append("&times;");
-    var $message = $("<div class='message alert motd-alert'></div>").append($button, $name, $date, data.message);
+    var $name = $("<span class='small'></span>").append(data.name);
+    var $sep = $("<span class='small'> • </span>");
+    var $date = $("<span class='small'></span>").append(data.date);
+    var $details = $("<div class='details text-muted'></div>").append($name, $sep, $date);
+    var $content = $("<div class='lead'></div>").append(data.message);
+    var $message;
+    if (data.user_id == current_user_id) {
+      var $button = $('<button type="button" class="close" data-dismiss="alert"></button>').append("&times;");
+      $message = $("<div class='message alert motd-alert'></div>").append($button, $details, $content);
+    } else {
+      $message = $("<div class='message alert motd-alert'></div>").append($details, $content);
+    }
     $message.attr('data-motd-id', data.id);
     $("#messages").prepend($message);
   });
   channel.bind("#{RailsAdminMotd.pusher_event_remove}", function(data) {
     $("div[data-motd-id='"+data.id+"']").remove();
-    if ($("#messages").html().length > 1) {
-      $('#no-messages').fadeOut();
-    } else {
-      $('#no-messages').fadeIn();
-    }
   });
 
   $('#messages').on('closed', '.motd-alert', function () {
