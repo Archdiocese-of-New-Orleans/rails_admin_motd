@@ -10,10 +10,10 @@
                   &times;
               %p.name=motd['name']
               %p.date=motd['date']
-              =motd['message']
+              %p.lead=motd['message']
 
       %div{ id: 'no-messages', class:  @motds.present? ? 'hide' : ''}
-        %i No messages at the moment.
+        %i=t('admin.actions.motd.no_messages')
 
   - if can? :create, :motd
     .row
@@ -40,27 +40,28 @@
   var channel = pusher.subscribe("#{RailsAdminMotd.pusher_channel}");
   var current_user_id = #{current_user.id};
   channel.bind("#{RailsAdminMotd.pusher_event_add}", function(data) {
-    $('#no-messages').hide();
+    $('#no-messages').fadeOut();
     var $name = $("<p class='name'></p>").append(data.name);
     var $date = $("<p class='date'></p>").append(data.date);
     var $button = $('');
     if (data.user_id == current_user_id)
       $button = $('<button type="button" class="close" data-dismiss="alert"></button>').append("&times;");
     var $message = $("<div class='message alert motd-alert'></div>").append($button, $name, $date, data.message);
+    $message.attr('data-motd-id', data.id);
     $("#messages").prepend($message);
   });
   channel.bind("#{RailsAdminMotd.pusher_event_remove}", function(data) {
     $("div[data-motd-id='"+data.id+"']").remove();
-    if ($("#messages").html().length == 0) {
-      $('#no-messages').fadeIn();
-    } else {
+    if ($("#messages").html().length > 1) {
       $('#no-messages').fadeOut();
+    } else {
+      $('#no-messages').fadeIn();
     }
   });
 
   $('#messages').on('closed', '.motd-alert', function () {
     var url = "#{rails_admin.motd_path}";
     var data_id = $(this).data('motd-id');
-    $.ajax({ url: url, type: 'DELETE', data: {id: data_id}, dataType: 'script', success: function(result) {} });
+    $.ajax({ url: url, type: 'DELETE', data: {id: data_id}, dataType: 'script' });
   });
 

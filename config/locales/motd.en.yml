@@ -10,3 +10,4 @@ en:
         bulk_link: "Motd selected %{model_label_plural}"
         done: "Motded"
         message_required: "A message is required."
+        no_messages: "No messages at the moment."
