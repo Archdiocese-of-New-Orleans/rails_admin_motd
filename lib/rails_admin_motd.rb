@@ -16,8 +16,6 @@ module RailsAdminMotd
     yield self
   end
 
-  Pusher.url = "http://#{RailsAdminMotd.pusher_key}:#{RailsAdminMotd.pusher_secret}@api.pusherapp.com/apps/#{RailsAdminMotd.pusher_app_id}"
-  Pusher.logger = Rails.logger
 end
 
 require 'rails_admin/config/actions'
@@ -61,7 +59,7 @@ module RailsAdmin
             end
 
             def remove_motd_from_yml(motd_id)
-              index = motds['messages'].index{|m| m.id = motd_id }
+              index = motds['messages'].index{|m| m['id'] = motd_id }
               if index
                 motds['messages'].delete_at(index)
                 write_yml
@@ -70,10 +68,12 @@ module RailsAdmin
 
             if request.post?
               @motd = params[:motd]
+              Pusher.url = "http://#{RailsAdminMotd.pusher_key}:#{RailsAdminMotd.pusher_secret}@api.pusherapp.com/apps/#{RailsAdminMotd.pusher_app_id}"
+              Pusher.logger = Rails.logger
               @name = current_user.try(RailsAdminMotd.current_user_name_method)
-              if @motd
+              if @motd.present?
                 begin
-                  Pusher[RailsAdminMotd.pusher_channel].trigger(RailsAdminMotd.pusher_event_add, {
+                  Pusher["#{RailsAdminMotd.pusher_channel}"].trigger("#{RailsAdminMotd.pusher_event_add}", {
                     id: next_motd_id,
                     user_id: current_user.id,
                     name: @name,
@@ -91,9 +91,9 @@ module RailsAdmin
               end
             elsif request.delete?
               begin
-                motd = motds.find{|m| m.id == params[:id] } #find the motd from the yml
+                motd = motds['messages'].find{|m| m['id'] == params[:id] } #find the motd from the yml
                 if can? :manage, :all || motd.user_id == current_user.id #delete it if they are auth.
-                  Pusher[RailsAdminMotd.pusher_channel].trigger(RailsAdminMotd.pusher_event_remove, {
+                  Pusher["#{RailsAdminMotd.pusher_channel}"].trigger("#{RailsAdminMotd.pusher_event_remove}", {
                     id: params[:id]
                   })
                   remove_motd_from_yml(params[:id])

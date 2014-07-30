@@ -4,16 +4,16 @@
       %div{ id: 'messages' }
         - if @motds.present?
           - @motds.each do |motd|
-            %div{ class: 'message alert alert-info motd-alert', data: { "motd-id" => motd['id']} }
+            %div{ class: 'message alert motd-alert', data: { "motd-id" => motd['id']} }
               - if current_user.id == motd['user_id']
                 %button.close{type: 'button', "data-dismiss"=> 'alert'}
                   &times;
               %p.name=motd['name']
               %p.date=motd['date']
               =motd['message']
-        - else
-          %div{ id: 'no-messages' }
-            %i No messages at the moment.
+
+      %div{ id: 'no-messages', class:  @motds.present? ? 'hide' : ''}
+        %i No messages at the moment.
 
   - if can? :create, :motd
     .row
@@ -21,10 +21,11 @@
         .alert.alert-error.hide{ id: 'error' }
         = form_tag rails_admin.motd_path, remote: true, class: 'form-horizontal', id: "motd-form" do
           .control-group
-            = text_area_tag 'message', nil, placeholder: "Type your message", id: 'motd'
+            = text_area_tag 'motd', nil, placeholder: "Type your message", id: 'motd'
           .control-group
-            =submit_tag 'Post', class: 'btn btn-primary'
+            =submit_tag 'Post', class: 'btn btn-primary', data: { disable_with: 'Posting...'}
 
+= stylesheet_link_tag "rails_admin/rails_admin_motd"
 = javascript_include_tag "https://js.pusher.com/2.2/pusher.min.js"
 - unless Rails.env.production?
   :javascript
@@ -40,21 +41,26 @@
   var current_user_id = #{current_user.id};
   channel.bind("#{RailsAdminMotd.pusher_event_add}", function(data) {
     $('#no-messages').hide();
-
     var $name = $("<p class='name'></p>").append(data.name);
     var $date = $("<p class='date'></p>").append(data.date);
     var $button = $('');
     if (data.user_id == current_user_id)
       $button = $('<button type="button" class="close" data-dismiss="alert"></button>').append("&times;");
-
-    var $message = $("<div class='message'></div>").append($button, $name, $date, data.message);
+    var $message = $("<div class='message alert motd-alert'></div>").append($button, $name, $date, data.message);
+    $("#messages").prepend($message);
   });
   channel.bind("#{RailsAdminMotd.pusher_event_remove}", function(data) {
     $("div[data-motd-id='"+data.id+"']").remove();
+    if ($("#messages").html().length == 0) {
+      $('#no-messages').fadeIn();
+    } else {
+      $('#no-messages').fadeOut();
+    }
   });
-  $('.motd-alert').bind('closed', function () {
-    var path = "#{rails_admin.motd_path}";
-    var data_id = $(this).parent('div').data('motd-id');
-    var url = path + "?id=" + data_id;
-    $.ajax({ url: url, type: 'DELETE', success: function(result) {} });
-  })
+
+  $('#messages').on('closed', '.motd-alert', function () {
+    var url = "#{rails_admin.motd_path}";
+    var data_id = $(this).data('motd-id');
+    $.ajax({ url: url, type: 'DELETE', data: {id: data_id}, dataType: 'script', success: function(result) {} });
+  });
+

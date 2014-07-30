@@ -1,3 +1,8 @@
+#messages > .alert {
+    background: #ffffff;
+    color: #777;
+}
+
 #messages > div:first-of-type {
     color: #3a87ad;
     background-color: #d9edf7;
@@ -6,4 +11,8 @@
 
 .message{
     margin-bottom: 5px;
+}
+
+#motd{
+    width: 574px;
 }

@@ -1,7 +1,6 @@
 <% if @error %>
     $('#error').html("<%=@error%>").fadeIn();
 <% else %>
-    $('#error').html('').hide();
-    $('#no-messages').hide();
+    $('#error').html('').fadeOut();
     $('#motd').val('');
 <% end %>
