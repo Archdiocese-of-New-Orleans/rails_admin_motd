@@ -84,6 +84,7 @@ module RailsAdmin
             end
 
             @motds = YAML.load_file(RailsAdminMotd.yml_path)['messages']
+            session[:motd] = RailsAdminMotd.current_motd #save the motd so we can change the link_icon when it changes
 
             if request.post?
               Pusher.url = "http://#{RailsAdminMotd.pusher_key}:#{RailsAdminMotd.pusher_secret}@api.pusherapp.com/apps/#{RailsAdminMotd.pusher_app_id}"
@@ -135,7 +136,7 @@ module RailsAdmin
         end
 
         register_instance_option :link_icon do
-          'icon-bullhorn'
+          RailsAdminMotd.current_motd == bindings[:controller].request.session[:motd] ? 'icon-bullhorn' : 'icon-bullhorn orange'
         end
 
         register_instance_option :http_methods do
